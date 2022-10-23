@@ -2,6 +2,7 @@ use pyo3::{prelude::*};
 use pyo3::types::IntoPyDict;
 
 mod comment;
+mod Comment;
 
 fn main() -> PyResult<()> {
     Python::with_gil(|py| {
