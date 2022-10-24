@@ -1,4 +1,5 @@
 use serenity::model::prelude::MessageUpdateEvent;
+use Regex;
 
 struct User {
     id: u64,
@@ -14,6 +15,8 @@ struct Message {
 impl Message {
     fn new(update: &MessageUpdateEvent) -> Self {
         let author = update.author.unwrap_or_default();
-        let a = update.attachments[0];
+        // let a = update.attachments[0];
+        let mut text = update.content.unwrap_or_default();
+        Regex::new(r"(https?)\S*")
     }
 }
