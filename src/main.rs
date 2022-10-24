@@ -1,21 +1,61 @@
-use pyo3::{prelude::*};
-use pyo3::types::IntoPyDict;
+use std::env;
+
+use serenity::async_trait;
+use serenity::builder::GetMessages;
+use serenity::prelude::*;
+use serenity::model::channel::Message;
+use serenity::framework::standard::macros::{command, group};
+use serenity::framework::standard::{StandardFramework, CommandResult};
+
+use crate::comment::Comment;
+use crate::obj_engine_handler::render_comment_list;
+
 
 mod comment;
-mod Comment;
+mod obj_engine_handler;
+#[group]
+#[commands(ping)]
+struct General;
 
-fn main() -> PyResult<()> {
-    Python::with_gil(|py| {
-        let engine = py.import("objection_engine")?;
-        // let locals = [("objection_engine",engine)].into_py_dict(py);
-        let kwargs = [("text_content", "hola hola majisimos"),("user_name", "user1")].into_py_dict(py);
-        let comment1 = engine.getattr("comment")?.call_method0("Comment")?;
-        let comment2 = engine.getattr("comment")?.call_method("Comment", ("", ), Some(kwargs))?;
-        let comments = py.eval("[]", None, None)?;
-        comments.call_method1("append", (comment1,))?;
-        comments.call_method1("append", (comment2,))?;
-        // let comments = py.eval("[objection_engine.comment.Comment()]", None, Some(locals)).unwrap();//.to_object(py);
-        engine.getattr("renderer")?.call_method1("render_comment_list", (comments,))?;
-        Ok(())
-    })
+struct Handler;
+
+#[async_trait]
+impl EventHandler for Handler {}
+
+#[tokio::main]
+async fn main() {
+    let framework = StandardFramework::new()
+        .configure(|c| c.prefix("!")) // set the bot's prefix to "~"
+        .group(&GENERAL_GROUP);
+
+    // Login with a bot token from the environment
+    let token = env::var("DISCORD_TOKEN").expect("token");
+    let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MEMBERS;
+    let mut client = Client::builder(token, intents)
+        .event_handler(Handler)
+        .framework(framework)
+        .await
+        .expect("Error creating client");
+
+    // start listening for events by starting a single shard
+    if let Err(why) = client.start().await {
+        println!("An error occurred while running the client: {:?}", why);
+    }
+}
+
+#[command]
+async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "Pong!").await?;
+    let foo = msg.channel(ctx).await?.guild();
+    if foo.is_some(){
+        let guild = foo.unwrap();
+        let first_msg = if msg.referenced_message.is_some() {msg.referenced_message.as_ref().unwrap()} else {msg};
+        let mut retriever = GetMessages::default();
+        retriever.before(first_msg.id);
+        retriever.limit(1);
+        let messages = guild.messages(ctx, |_| &mut retriever).await?;
+        let internalMsgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
+        render_comment_list(&internalMsgs);
+    }
+    Ok(())
 }
