@@ -1,7 +1,6 @@
 use std::env;
 
 use serenity::async_trait;
-use serenity::builder::GetMessages;
 use serenity::prelude::*;
 use serenity::model::channel::Message;
 use serenity::framework::standard::macros::{command, group};
@@ -29,7 +28,7 @@ async fn main() {
         .group(&GENERAL_GROUP);
 
     // Login with a bot token from the environment
-    let token = env::var("DISCORD_TOKEN").expect("token");
+    let token = env::var("DISCORD_TOKEN").expect("token triste");
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MEMBERS;
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
@@ -50,12 +49,9 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
     if foo.is_some(){
         let guild = foo.unwrap();
         let first_msg = if msg.referenced_message.is_some() {msg.referenced_message.as_ref().unwrap()} else {msg};
-        let mut retriever = GetMessages::default();
-        retriever.before(first_msg.id);
-        retriever.limit(1);
-        let messages = guild.messages(ctx, |_| &mut retriever).await?;
-        let internalMsgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
-        render_comment_list(&internalMsgs);
+        let messages = guild.messages(ctx, |retriever| retriever.before(first_msg).limit(1)).await?;
+        let internal_msgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
+        render_comment_list(&internal_msgs);
     }
     Ok(())
 }
