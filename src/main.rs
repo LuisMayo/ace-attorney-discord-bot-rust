@@ -37,7 +37,7 @@ async fn main() {
         .expect("Error creating client");
 
     // start listening for events by starting a single shard
-    if let Err(why) = client.start().await {
+    if let Err(why) = client.start_autosharded().await {
         println!("An error occurred while running the client: {:?}", why);
     }
 }
