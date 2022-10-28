@@ -1,8 +1,5 @@
-use std::collections::VecDeque;
-use std::env;
-use std::sync::Mutex;
-
 use serenity::async_trait;
+use serenity::framework::standard::Args;
 use serenity::prelude::*;
 use serenity::model::channel::Message;
 use serenity::framework::standard::macros::{command, group};
@@ -16,7 +13,7 @@ mod comment;
 mod obj_engine_handler;
 mod config;
 
-// static CONFIG: Mutex<config::Settings> = Mutex::new(config::Settings::new());
+static QUEUED_IDS: std::sync::RwLock<Vec<(u64, u64)>> = std::sync::RwLock::new(Vec::new());
 #[group]
 #[commands(ping)]
 #[commands(invite)]
@@ -54,9 +51,20 @@ async fn main() {
 }
 
 #[command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
+#[min_args(1)]
+#[max_args(2)]
+async fn ping(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    if (!args.current().is_some()) {
+        msg.reply(ctx, "Sorry, you need to provide at least one argument");
+    } else {
+        let number = args.parse::<u8>().unwrap_or(5);
+        let my_msg = msg.to_owned();
+        let my_ctx = ctx.to_owned();
+        tokio_rayon::spawn(move || async {
+            let foo = msg.channel(ctx).await?.guild();
+        });
+    }
     msg.reply(ctx, "Pong!").await?;
-    let foo = msg.channel(ctx).await?.guild();
     if foo.is_some(){
         let guild = foo.unwrap();
         let first_msg = if msg.referenced_message.is_some() {msg.referenced_message.as_ref().unwrap()} else {msg};
@@ -69,9 +77,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
-    println!("A pedir el lock");
     let lock = ctx.data.read().await;
-    println!("Lock acquired");
     let settings_opt = lock.get::<config::Settings>();
     if settings_opt.is_some() {
         msg.reply(ctx, &settings_opt.unwrap().invite_link).await.unwrap();

@@ -10,6 +10,8 @@ serenity = "0.11.5"
 regex = "1.6.0"
 tokio = { version = "1.21.2", features = ["full"] }
 config = { version = "0.13.1", features = ["yaml"] }
+rayon = "1.5.3"
+tokio-rayon = "2.1.0"
 [dependencies.pyo3]
 version = "0.17.2"
 features = ["auto-initialize"]
