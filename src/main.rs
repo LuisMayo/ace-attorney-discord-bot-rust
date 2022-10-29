@@ -54,24 +54,29 @@ async fn main() {
 #[min_args(1)]
 #[max_args(2)]
 async fn ping(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if (!args.current().is_some()) {
-        msg.reply(ctx, "Sorry, you need to provide at least one argument");
-    } else {
-        let number = args.parse::<u8>().unwrap_or(5);
-        let my_msg = msg.to_owned();
-        let my_ctx = ctx.to_owned();
-        tokio_rayon::spawn(move || async {
-            let foo = msg.channel(ctx).await?.guild();
-        });
-    }
+    let number = args.parse::<u8>().unwrap_or(5);
+    let my_msg = msg.to_owned();
+    let my_ctx = ctx.to_owned();
+    tokio_rayon::spawn( || async move {
+        let guild_response = my_msg.channel(&my_ctx).await;
+        if guild_response.is_err(){
+            return;
+        }
+        let guild = guild_response.unwrap().guild();
+        if guild.is_some(){
+            let channel = guild.unwrap();
+            let first_msg = if my_msg.referenced_message.is_some() {my_msg.referenced_message.as_ref().unwrap()} else {&my_msg};
+            let messages_result = channel.messages(&my_ctx, |retriever| retriever.before(first_msg).limit(1)).await;
+            if messages_result.is_ok() {
+                let messages = messages_result.unwrap();
+                let internal_msgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
+                render_comment_list(&internal_msgs);
+            } else {
+                my_msg.reply(&my_ctx, "Sorry I couldn't retrieve the messages").await;
+            }
+        }
+    });
     msg.reply(ctx, "Pong!").await?;
-    if foo.is_some(){
-        let guild = foo.unwrap();
-        let first_msg = if msg.referenced_message.is_some() {msg.referenced_message.as_ref().unwrap()} else {msg};
-        let messages = guild.messages(ctx, |retriever| retriever.before(first_msg).limit(1)).await?;
-        let internal_msgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
-        render_comment_list(&internal_msgs);
-    }
     Ok(())
 }
 
