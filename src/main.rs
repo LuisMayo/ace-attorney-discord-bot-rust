@@ -72,6 +72,7 @@ async fn render(ctx: &Context, msg: &Message) -> CommandResult {
                 println!("yey!");
                 let messages = messages_result.unwrap();
                 let internal_msgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
+                // tokio_rayon::spawn(func).
                 render_comment_list(&internal_msgs);
             } else {
                 println!("sad!");
