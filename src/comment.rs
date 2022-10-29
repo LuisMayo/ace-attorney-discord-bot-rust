@@ -1,4 +1,4 @@
-use pyo3::{Py, Python, types::{PyModule, IntoPyDict}, PyAny};
+use pyo3::{ Python, types::{PyModule, IntoPyDict}, PyAny};
 use serenity::model::channel::Message;
 use regex::Regex;
 struct User {

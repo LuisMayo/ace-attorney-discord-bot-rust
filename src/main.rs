@@ -13,10 +13,9 @@ mod comment;
 mod obj_engine_handler;
 mod config;
 
-static QUEUED_IDS: std::sync::RwLock<Vec<(u64, u64)>> = std::sync::RwLock::new(Vec::new());
+// static QUEUED_IDS: std::sync::RwLock<Vec<(u64, u64)>> = std::sync::RwLock::new(Vec::new());
 #[group]
-#[commands(ping)]
-#[commands(invite)]
+#[commands(render, invite)]
 struct General;
 
 struct Handler;
@@ -51,28 +50,32 @@ async fn main() {
 }
 
 #[command]
-#[min_args(1)]
-#[max_args(2)]
-async fn ping(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let number = args.parse::<u8>().unwrap_or(5);
+async fn render(ctx: &Context, msg: &Message) -> CommandResult {
+    // let number = args.parse::<u8>().unwrap_or(5);
+    println!("Ping");
     let my_msg = msg.to_owned();
     let my_ctx = ctx.to_owned();
-    tokio_rayon::spawn( || async move {
+    println!("Pong");
+    let _thread_result = tokio::task::spawn(async move {
+        println!("I'm on the thread hjehe");
         let guild_response = my_msg.channel(&my_ctx).await;
         if guild_response.is_err(){
             return;
         }
         let guild = guild_response.unwrap().guild();
         if guild.is_some(){
+            println!("Yay!");
             let channel = guild.unwrap();
             let first_msg = if my_msg.referenced_message.is_some() {my_msg.referenced_message.as_ref().unwrap()} else {&my_msg};
             let messages_result = channel.messages(&my_ctx, |retriever| retriever.before(first_msg).limit(1)).await;
             if messages_result.is_ok() {
+                println!("yey!");
                 let messages = messages_result.unwrap();
                 let internal_msgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
                 render_comment_list(&internal_msgs);
             } else {
-                my_msg.reply(&my_ctx, "Sorry I couldn't retrieve the messages").await;
+                println!("sad!");
+                let _sorry_msg = my_msg.reply(&my_ctx, "Sorry I couldn't retrieve the messages").await;
             }
         }
     });
