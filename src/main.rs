@@ -1,5 +1,5 @@
 use serenity::async_trait;
-use serenity::framework::standard::Args;
+use rayon::prelude::*;
 use serenity::prelude::*;
 use serenity::model::channel::Message;
 use serenity::framework::standard::macros::{command, group};
@@ -71,9 +71,8 @@ async fn render(ctx: &Context, msg: &Message) -> CommandResult {
             if messages_result.is_ok() {
                 println!("yey!");
                 let messages = messages_result.unwrap();
-                let internal_msgs = messages.iter().map(|msg| Comment::new(&msg)).collect();
-                // tokio_rayon::spawn(func).
-                render_comment_list(&internal_msgs);
+                let internal_msgs: Vec<Comment> = messages.par_iter().map(|msg| Comment::new(&msg)).into_par_iter().collect();
+                let result = tokio_rayon::spawn(move || render_comment_list(&internal_msgs, my_msg.id.0)).await;
             } else {
                 println!("sad!");
                 let _sorry_msg = my_msg.reply(&my_ctx, "Sorry I couldn't retrieve the messages").await;

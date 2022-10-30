@@ -1,7 +1,7 @@
 use pyo3::{Python};
 
 use super::comment::Comment;
-pub fn render_comment_list(list: &Vec<Comment>) {
+pub fn render_comment_list(list: &Vec<Comment>, unique_id: u64) {
     Python::with_gil(|py| {
         let engine = py.import("objection_engine").unwrap();
         // let locals = [("objection_engine",engine)].into_py_dict(py);
@@ -12,7 +12,7 @@ pub fn render_comment_list(list: &Vec<Comment>) {
             pyarr.call_method1("append", (pycomment,)).unwrap();
         }
         // let comments = py.eval("[objection_engine.comment.Comment()]", None, Some(locals)).unwrap();//.to_object(py);
-        engine.getattr("renderer").unwrap().call_method1("render_comment_list", (pyarr,)).unwrap();
+        engine.getattr("renderer").unwrap().call_method1("render_comment_list", (pyarr, unique_id)).unwrap();
         // Ok(())
     });
     return;
