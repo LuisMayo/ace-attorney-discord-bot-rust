@@ -1,34 +1,36 @@
 use pyo3::{Python};
-use crossbeam_channel::{unbounded, Sender, Receiver};
+use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::thread;
 
-use crate::job_model::JobMsg;
+use crate::job_model::{JobMsg};
 
-use super::comment::Comment;
-pub fn init_python() {
-    let (s, r): (Sender<JobMsg>, Receiver<JobMsg>) = unbounded();
-    let thread_s = s.clone();
-    let thread_r = r.clone();
+pub fn init_python() -> MySender<JobMsg> {
+    let (s, thread_r): (SyncSender<JobMsg>, Receiver<JobMsg>) = mpsc::sync_channel(500);
     thread::spawn(move || {
-        Python::with_gil(|py| {
+        Python::with_gil(move |py| {
             let engine = py.import("objection_engine").unwrap();
             // let locals = [("objection_engine",engine)].into_py_dict(py);
             // let pyArr = list.iter().map(|item| item.to_comment(&py, &engine));
             loop {
                 let job = thread_r.recv().unwrap();
                 let pyarr = py.eval("[]", None, None).unwrap();
-                for item in job..iter() {
+                for item in job.job_model.msgs.iter() {
                     let pycomment = item.to_comment(&py, &engine);
                     pyarr.call_method1("append", (pycomment,)).unwrap();
                 }
                 // let comments = py.eval("[objection_engine.comment.Comment()]", None, Some(locals)).unwrap();//.to_object(py);
-                engine.getattr("renderer").unwrap().call_method1("render_comment_list", (pyarr, unique_id)).unwrap();
+                // TODO luis.mayo check this
+                // let unique_id = Python::In
+                engine.getattr("renderer").unwrap().call_method1("render_comment_list", (pyarr, job.job_model.discord_msg.id.0.to_string() + ".mp4")).unwrap();
                 // Ok(())
             }
         });
     });
+    return MySender(s);
 }
-pub fn render_comment_list(list: &Vec<Comment>, unique_id: u64) {
-    
-    return;
+
+pub struct MySender<T>(pub SyncSender<T>);
+
+impl serenity::prelude::TypeMapKey for MySender<JobMsg> {
+    type Value = MySender<JobMsg>;
 }
