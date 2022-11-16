@@ -1,17 +1,14 @@
 use serenity::async_trait;
-use rayon::prelude::*;
 use serenity::prelude::*;
 use serenity::model::channel::Message;
 use serenity::framework::standard::macros::{command, group};
 use serenity::framework::standard::{StandardFramework, CommandResult};
 
-use crate::comment::Comment;
-use crate::obj_engine_handler::render_comment_list;
-
 
 mod comment;
 mod obj_engine_handler;
 mod config;
+mod job_model;
 
 // static QUEUED_IDS: std::sync::RwLock<Vec<(u64, u64)>> = std::sync::RwLock::new(Vec::new());
 #[group]
@@ -71,8 +68,8 @@ async fn render(ctx: &Context, msg: &Message) -> CommandResult {
             if messages_result.is_ok() {
                 println!("yey!");
                 let messages = messages_result.unwrap();
-                let internal_msgs: Vec<Comment> = messages.par_iter().map(|msg| Comment::new(&msg)).into_par_iter().collect();
-                let result = tokio_rayon::spawn(move || render_comment_list(&internal_msgs, my_msg.id.0)).await;
+                // let internal_msgs: Vec<Comment> = messages.par_iter().map(|msg| Comment::new(&msg)).into_par_iter().collect();
+                // let result = tokio_rayon::spawn(move || render_comment_list(&internal_msgs, my_msg.id.0)).await;
             } else {
                 println!("sad!");
                 let _sorry_msg = my_msg.reply(&my_ctx, "Sorry I couldn't retrieve the messages").await;
